@@ -51,31 +51,58 @@ jobs:
 
           replacement = r'''// Hyperbolicity from one C^1 return and exact reversibility.
           //
+          // We first refine the already certified root bracket. A cell can be
+          // discarded rigorously whenever the enclosure of g(p)=pi_{p_z}P(p,0)
+          // does not contain zero. Only cells that may contain the exact root
+          // are kept. This avoids accepting an enormous C^1 enclosure merely
+          // because CAPD did not throw an exception on the full root bracket.
+          bool refineRootC1(IPoincareMap& pmPeri,
+                            const interval& I,
+                            int depth,
+                            MapEval& out)
+          {
+            MapEval E=evalP1Adaptive(pmPeri,I,ZERO);
+            if(!containsZero(E.image[PZ])) return false;
+            if(depth<=0 || hi(I)-lo(I) < 1e-13){
+              out=E;
+              return true;
+            }
+
+            const double L=lo(I), U=hi(I), M=0.5*(L+U);
+            if(!(L<M && M<U)){
+              out=E;
+              return true;
+            }
+
+            MapEval A,B;
+            const bool hasA=refineRootC1(pmPeri,interval(L,M),depth-1,A);
+            const bool hasB=refineRootC1(pmPeri,interval(M,U),depth-1,B);
+            if(!hasA && !hasB) return false;
+            if(hasA && hasB) out=hullMapEval(A,B);
+            else out = hasA ? A : B;
+            return true;
+          }
+
           // Put A=DP(q), q=(p_*,0), and q1=P(q). Since q1 lies in Fix(S),
           // S(p,z)=(-p,z), reversibility S P S=P^{-1} gives
-          //
-          //        DS DP(q1) DS = A^{-1}.
-          //
-          // In section coordinates (p_z,z), DS=diag(-1,1). The Poincare map
-          // is symplectic, so det A=1 exactly. If A=[[a,b],[c,d]], then
-          //
-          //        DP(q1)=[[d,b],[c,a]].
-          //
-          // Since P^2(q)=Cq, CP=PC and DC=-I, derivatives repeat at the
-          // C-images, and therefore D(P^4)(q)=(DP(q1) A)^2.
-          // Only one C^1 return at q is needed; there z=0 and liftRz0 is exact.
+          // DS DP(q1) DS=A^{-1}. In section coordinates DS=diag(-1,1), and
+          // symplecticity gives det A=1 exactly. Thus for A=[[a,b],[c,d]],
+          // DP(q1)=[[d,b],[c,a]], and D(P^4)(q)=(DP(q1) A)^2.
           IMatrix evalDF4BySymmetry(IPoincareMap& pmPeri,
                                     const interval& pRoot,
                                     interval& q1Z)
           {
-            MapEval Aq=evalP1Adaptive(pmPeri,pRoot,ZERO);
-            if(!containsZero(Aq.image[PZ]))
+            MapEval Aq;
+            if(!refineRootC1(pmPeri,pRoot,12,Aq))
               throw std::runtime_error(
-                "evalDF4BySymmetry: first-return image does not contain p_z=0");
+                "evalDF4BySymmetry: no refined C1 cell can contain g=0");
 
             q1Z=Aq.image[Z];
-
             const IMatrix& A=Aq.D2;
+
+            cout << "  refined DP(q) = [[" << A[0][0] << ", " << A[0][1]
+                 << "],[" << A[1][0] << ", " << A[1][1] << "]]\n";
+
             IMatrix B(2,2);
             B[0][0]=A[1][1];
             B[0][1]=A[0][1];
