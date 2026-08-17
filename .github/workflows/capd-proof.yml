@@ -1,0 +1,70 @@
+name: SI3BP rigorous CAPD certificate
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'si3bp_capd.cpp'
+      - 'Makefile'
+      - '.github/workflows/capd-proof.yml'
+
+jobs:
+  rigorous-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout certificate repository
+        uses: actions/checkout@v4
+
+      - name: Exact rational prechecks
+        run: python3 analytic_prechecks.py
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libboost-all-dev libgmp-dev libmpfr-dev
+
+      - name: Fetch pinned CAPD source
+        run: |
+          git clone https://github.com/CAPDGroup/CAPD.git CAPD
+          cd CAPD
+          git checkout 731079217a9254ea2948d742df2b170895effe7f
+          git status --short
+
+      - name: Build CAPD
+        run: |
+          cmake -S CAPD -B CAPD/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build CAPD/build --parallel 2
+          test -x CAPD/build/bin/capd-config
+          CAPD/build/bin/capd-config --cflags --libs
+
+      - name: Build SI3BP certificate
+        run: |
+          make CAPD_CONFIG="$PWD/CAPD/build/bin/capd-config"
+
+      - name: Run rigorous certificate
+        id: proof
+        shell: bash
+        run: |
+          set +e
+          ./si3bp_capd 2>&1 | tee capd-proof.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Upload proof log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: si3bp-capd-proof-log
+          path: capd-proof.log
+          if-no-files-found: error
+
+      - name: Verify entropy certificate
+        shell: bash
+        run: |
+          grep -F "C1: PASS" capd-proof.log
+          grep -F "C4 (Burns--Weiss crossing): PASS" capd-proof.log
+          grep -F "ALL ENTROPY CERTIFICATES PASSED." capd-proof.log
+          test "${{ steps.proof.outputs.exit_code }}" = "0"
