@@ -20,6 +20,82 @@ jobs:
       - name: Exact rational prechecks
         run: python3 analytic_prechecks.py
 
+      - name: Apply one-return reversibility patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("si3bp_capd.cpp")
+          text = path.read_text(encoding="utf-8")
+
+          marker = "// Hyperbolicity of the symmetric period-four point without a four-return"
+          start = text.index(marker)
+          sig = "IMatrix evalDF4BySymmetry(IPoincareMap& pmPeri,"
+          func = text.index(sig, start)
+          brace = text.index("{", func)
+
+          depth = 0
+          end = None
+          for i in range(brace, len(text)):
+              ch = text[i]
+              if ch == "{":
+                  depth += 1
+              elif ch == "}":
+                  depth -= 1
+                  if depth == 0:
+                      end = i + 1
+                      break
+
+          if end is None:
+              raise RuntimeError("could not locate end of evalDF4BySymmetry")
+
+          replacement = r'''// Hyperbolicity from one C^1 return and exact reversibility.
+          //
+          // Put A=DP(q), q=(p_*,0), and q1=P(q). Since q1 lies in Fix(S),
+          // S(p,z)=(-p,z), reversibility S P S=P^{-1} gives
+          //
+          //        DS DP(q1) DS = A^{-1}.
+          //
+          // In section coordinates (p_z,z), DS=diag(-1,1). The Poincare map
+          // is symplectic, so det A=1 exactly. If A=[[a,b],[c,d]], then
+          //
+          //        DP(q1)=[[d,b],[c,a]].
+          //
+          // Since P^2(q)=Cq, CP=PC and DC=-I, derivatives repeat at the
+          // C-images, and therefore D(P^4)(q)=(DP(q1) A)^2.
+          // Only one C^1 return at q is needed; there z=0 and liftRz0 is exact.
+          IMatrix evalDF4BySymmetry(IPoincareMap& pmPeri,
+                                    const interval& pRoot,
+                                    interval& q1Z)
+          {
+            MapEval Aq=evalP1Adaptive(pmPeri,pRoot,ZERO);
+            if(!containsZero(Aq.image[PZ]))
+              throw std::runtime_error(
+                "evalDF4BySymmetry: first-return image does not contain p_z=0");
+
+            q1Z=Aq.image[Z];
+
+            const IMatrix& A=Aq.D2;
+            IMatrix B(2,2);
+            B[0][0]=A[1][1];
+            B[0][1]=A[0][1];
+            B[1][0]=A[1][0];
+            B[1][1]=A[0][0];
+
+            IMatrix BA=mul22(B,A);
+            return mul22(BA,BA);
+          }'''
+
+          patched = text[:start] + replacement + text[end:]
+          if patched == text:
+              raise RuntimeError("patch made no change")
+          if patched.count("IMatrix evalDF4BySymmetry(") != 1:
+              raise RuntimeError("unexpected number of evalDF4BySymmetry definitions")
+
+          path.write_text(patched, encoding="utf-8")
+          print("Applied rigorous one-return reversibility patch")
+          PY
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
