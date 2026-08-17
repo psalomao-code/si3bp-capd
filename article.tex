@@ -1,0 +1,1304 @@
+
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.08in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{assumption}[theorem]{Assumption}
+
+\newcommand{\R}{\mathbb R}
+\newcommand{\T}{\mathbb T}
+\newcommand{\cM}{\mathcal M}
+\newcommand{\cR}{\mathcal R}
+\newcommand{\cN}{\mathcal N}
+\newcommand{\cO}{\mathcal O}
+\newcommand{\Wu}{W^{u}}
+\newcommand{\Ws}{W^{s}}
+\newcommand{\Fix}{\operatorname{Fix}}
+\newcommand{\htop}{h_{\mathrm{top}}}
+\newcommand{\Span}{\operatorname{span}}
+\newcommand{\pr}{p_r}
+\newcommand{\pz}{p_z}
+\newcommand{\eps}{\varepsilon}
+
+\title{\bf A rigorous computer-assisted scheme for positive topological entropy\\
+in the spatial isosceles three-body problem}
+
+\author{
+Lei Liu\thanks{School of Mathematics, Shandong University, Jinan, China.
+E-mail: \texttt{liulei30@email.sdu.edu.cn}}
+\and
+Pedro A. S. Salom\~ao\thanks{Shenzhen International Center for Mathematics,
+Southern University of Science and Technology (SUSTech), Shenzhen, China.
+E-mail: \texttt{psalomao@sustech.edu.cn}}
+}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A problem of Jean-Pierre Marco, recorded as Problem 6 in the list of
+Albouy--Cabral--Santos, asks whether the collisionless isosceles three-body
+problem has positive topological entropy whenever the angular momentum and
+the energy determine a smooth compact integral manifold.
+We develop a rigorous computer-assisted scheme for a concrete compact energy
+surface of the spatial isosceles three-body problem.  After fixing the energy
+to $-1$, we consider
+\[
+ \beta=\frac{3}{100},\qquad e=\frac{987}{1000},
+\]
+for which $\beta^2+e^2<1$.
+The proof is reduced to a finite list of interval inequalities for a
+Poincar\'e map.  Once validated, these inequalities imply the existence of a
+symmetric hyperbolic period-four orbit, a local unstable graph, and a
+symmetric homoclinic topological crossing.  The geometric part of the argument is independent of
+the numerical implementation: reversibility turns the zero of a scalar
+apoapsis coordinate into a homoclinic point, while a one-sided derivative
+bound forces a topological crossing.  The theorem of Burns and Weiss then
+gives positive topological entropy.  A stronger derivative certificate gives
+a transverse homoclinic orbit and hence a Smale horseshoe.
+We explain in detail how interval arithmetic enters the argument and isolate
+the exact finite validation statement needed for a complete
+computer-assisted proof.
+\end{abstract}
+
+\medskip
+\noindent
+\textbf{2020 Mathematics Subject Classification.}
+Primary 37J46, 37J55; Secondary 70F07, 37B40, 65G20.
+
+\medskip
+\noindent
+\textbf{Keywords.}
+spatial isosceles three-body problem, topological entropy, homoclinic orbit,
+reversible dynamics, interval arithmetic, CAPD, Poincar\'e map.
+
+\section{Introduction}
+
+The isosceles three-body problem is one of the classical invariant
+subsystems of the Newtonian three-body problem.  Two bodies have equal mass
+and remain symmetric with respect to a fixed axis, while the third body moves
+on that axis.  After reduction by the rotational symmetry, the system has two
+degrees of freedom.  It is simple enough to admit detailed geometric and
+analytic study, but rich enough to display many of the mechanisms that occur
+in general celestial mechanics.
+
+A basic question is whether the dynamics on compact regular energy surfaces
+is genuinely chaotic.  In the list of open problems compiled by
+Albouy--Cabral--Santos \cite{AlbouyCabralSantos}, Problem 6 is attributed to
+Jean-Pierre Marco and asks whether the topological entropy is positive in
+the collisionless isosceles three-body problem for values of the angular
+momentum and energy for which the integral manifold is a smooth compact
+manifold.  We refer to this question as the \emph{Marco entropy problem}.
+The Hamiltonian used below is obtained after fixing the angular momentum and
+reducing the cyclic rotation angle.  If one formulates Marco's problem on the
+unreduced integral manifold, the quotient map onto the reduced energy surface
+semiconjugates the two flows.  Since topological entropy cannot increase under
+a factor map, positive entropy for the reduced flow implies positive entropy
+for the corresponding unreduced flow.  Thus a positive result below gives a
+partial affirmative answer to Marco's problem in either formulation.
+
+There are classical constructions of symbolic dynamics in the isosceles
+problem.  In particular, Moeckel \cite{Moeckel1984} constructed invariant
+sets with symbolic dynamics and heteroclinic phenomena in regimes related to
+close approaches to triple collision.  These results are fundamental, but
+they do not settle the general compact problem formulated by Marco.
+
+More recently, symplectic and contact methods have provided a rather precise
+description of the compact spatial isosceles problem.  For suitable
+parameters the compact energy surface is diffeomorphic to $S^3$, and the
+Euler orbit binds disk-like global surfaces of section; see
+\cite{HuLiuOuSalomaoYu}.  Quantitative constraints coming from embedded
+contact homology imply, in particular, the existence of infinitely many
+periodic orbits on every compact energy surface in the regime considered in
+\cite{ECHconstraints}.  Nevertheless, infinitely many periodic orbits do not
+by themselves force positive topological entropy.  Even an integrable twist
+map may possess infinitely many periodic orbits and have zero entropy.
+
+The aim of the present paper is different.  We look for a concrete
+hyperbolic mechanism: a homoclinic crossing associated with a symmetric
+hyperbolic periodic orbit.  The existence of such a crossing can be reduced
+to a finite number of inequalities for a two-dimensional Poincar\'e map.
+This makes the problem particularly well suited to interval arithmetic.
+
+The parameter values used throughout are
+\begin{equation}\label{eq:parameters}
+ \beta=\frac{3}{100},\qquad
+ e=\frac{987}{1000},\qquad
+ H=-1.
+\end{equation}
+They correspond to
+\begin{equation}\label{eq:alphaomega}
+ \alpha=\frac{12}{97},\qquad
+ \varpi^2=\frac{25831}{1800}.
+\end{equation}
+Moreover,
+\[
+ \beta^2+e^2=0.975069<1,
+\]
+so the energy surface lies strictly in the compact regime.
+
+The computer-assisted part of the argument is deliberately kept small.  It
+has four roles:
+\begin{enumerate}[label=(\roman*)]
+\item validate a symmetric period-four point of a periapsis Poincar\'e map;
+\item prove that this point is hyperbolic;
+\item prove cone, trapping and exit inequalities giving the true local
+unstable manifold as a graph;
+\item propagate a small part of this graph to an apoapsis section and prove a
+sign change together with a derivative inequality.
+\end{enumerate}
+Everything after these inequalities is an exact geometric argument.
+
+The main mathematical reduction is the following.
+
+\begin{theorem}[Finite entropy certificate]\label{thm:certificate}
+Consider the spatial isosceles three-body problem with the parameters
+\eqref{eq:parameters}.  Assume that the interval inequalities
+\textnormal{(C1)--(C4)} of Section~\ref{sec:certificate} are validated.
+Then the Hamiltonian flow on $\cM=H^{-1}(-1)$ has positive topological
+entropy:
+\[
+ \htop(\phi_H|_{\cM})>0.
+\]
+More precisely, the flow has a hyperbolic periodic orbit with a homoclinic
+topological crossing.  If the stronger transverse version
+\textnormal{(C4$^+$)} is validated, then the stable and unstable manifolds
+have a transverse homoclinic intersection and the flow contains a suspended
+Smale horseshoe.
+\end{theorem}
+
+The significance of Theorem~\ref{thm:certificate} is that it reduces the
+remaining computer-assisted step to finite interval statements involving only explicit formulas for the vector
+field, the Poincar\'e maps and their first derivatives.  No numerical
+unstable-manifold polynomial is assumed.  The local unstable manifold is
+obtained from a rigorous cone argument.
+
+\begin{remark}[Status of the computer-assisted step]\label{rem:status}
+The theorem above separates the mathematical proof from the validation run.
+A final computer-assisted proof of positive entropy at
+\eqref{eq:parameters} consists of Theorem~\ref{thm:certificate} together
+with a machine-verifiable output certifying \textnormal{(C1)--(C4)}.
+Exploratory floating-point computations locate the relevant periodic point
+and homoclinic crossing with large margins; see
+Section~\ref{sec:exploratory}.  These floating-point values are used only to
+center the interval calculation and are not part of the proof.
+\end{remark}
+
+The paper is organized as follows.  Section~\ref{sec:model} recalls the
+Hamiltonian and the compact parameter regime.  Section~\ref{sec:symmetry}
+describes the reversible Poincar\'e map and the symmetric period-four orbit.
+Section~\ref{sec:graph} gives a complete proof of the local unstable graph
+lemma.  Section~\ref{sec:homoclinic} turns an apoapsis sign change into a
+homoclinic point.  Section~\ref{sec:crossing} proves that one derivative
+bound is enough to obtain a topological crossing and positive entropy.
+Section~\ref{sec:interval} explains the use of interval arithmetic in the
+problem.  Section~\ref{sec:certificate} gives the precise finite validation
+statement.
+
+\section{The spatial isosceles three-body problem}\label{sec:model}
+
+We use coordinates
+\[
+ (r,z,\pr,\pz)\in \R_+\times\R\times\R^2.
+\]
+The reduced Hamiltonian is
+\begin{equation}\label{eq:H}
+ H(r,z,\pr,\pz)
+ =
+ \frac{\pr^2+\pz^2}{2}
+ +\frac{\varpi^2}{2r^2}
+ -\frac1r
+ -\frac{4}{\alpha\sqrt{r^2+(1+2\alpha)z^2}}.
+\end{equation}
+Hamilton's equations are
+\begin{equation}\label{eq:HamEq}
+\begin{aligned}
+ \dot r&=\pr,\\
+ \dot z&=\pz,\\
+ \dot{\pr}
+ &=
+ \frac{\varpi^2}{r^3}
+ -\frac1{r^2}
+ -\frac{4r}
+ {\alpha\bigl(r^2+(1+2\alpha)z^2\bigr)^{3/2}},\\
+ \dot{\pz}
+ &=
+ -\frac{4(1+2\alpha)z}
+ {\alpha\bigl(r^2+(1+2\alpha)z^2\bigr)^{3/2}}.
+\end{aligned}
+\end{equation}
+
+Following the standard parametrization, set
+\begin{equation}\label{eq:betae}
+ \beta=\frac{1}{1+4/\alpha},
+ \qquad
+ e=\sqrt{1+2h\varpi^2\beta^2}.
+\end{equation}
+For negative energy we may use the standard scaling to fix $h=-1$.
+The scaling conjugates the phase portraits and changes time only by a
+positive constant factor, so it does not affect whether the topological
+entropy is positive.  Hence
+\[
+ \varpi^2=\frac{1-e^2}{2\beta^2}.
+\]
+For \eqref{eq:parameters} this gives exactly \eqref{eq:alphaomega}.
+
+For
+\[
+ 0<\beta^2+e^2<1,
+\]
+the regular energy hypersurface $\cM=H^{-1}(-1)$ is compact and
+diffeomorphic to $S^3$; see \cite{Moeckel1984,HuLiuOuSalomaoYu}.
+The centrifugal term prevents $r$ from approaching zero, so the flow on
+$\cM$ is collisionless and complete.
+
+\subsection{The energy graph on the periapsis section}
+
+The local Poincar\'e sections used below lie in $\{\pr=0\}$.  Near the
+periodic orbit of interest, the energy equation can be solved uniquely for
+$r$ as a function of $(\pz,z)$.
+
+Set
+\[
+ \Phi(r;p,z):=H(r,z,0,p)+1.
+\]
+Then
+\begin{equation}\label{eq:Phi_r}
+ \partial_r\Phi
+ =
+ -\frac{\varpi^2}{r^3}
+ +\frac{1}{r^2}
+ +\frac{4r}
+ {\alpha\bigl(r^2+(1+2\alpha)z^2\bigr)^{3/2}}.
+\end{equation}
+
+\begin{lemma}[Validated energy graph]\label{lem:energygraph}
+For the parameters \eqref{eq:parameters}, if
+\[
+ 8.5767\le p\le8.5770,\qquad |z|\le10^{-4},
+\]
+then the equation $\Phi(r;p,z)=0$ has a unique solution
+\[
+ r=r(p,z)\in(0.36,0.39).
+\]
+Moreover $r(p,z)$ is real analytic.
+\end{lemma}
+
+\begin{proof}
+Since
+\[
+ \bigl(r^2+(1+2\alpha)z^2\bigr)^{3/2}\ge r^3,
+\]
+we have
+\[
+ \partial_r\Phi
+ \le
+ -\frac{\varpi^2}{r^3}
+ +\frac{1+4/\alpha}{r^2}
+ =
+ \frac{r/\beta-\varpi^2}{r^3}.
+\]
+A direct interval evaluation on $0.36\le r\le0.39$ gives
+\begin{equation}\label{eq:Hrbound}
+ \partial_r\Phi<-22.7.
+\end{equation}
+At the two vertical sides one obtains the uniform bounds
+\begin{equation}\label{eq:PhiSides}
+ \Phi(0.36;p,z)>0.552,
+ \qquad
+ \Phi(0.39;p,z)<-0.512.
+\end{equation}
+Thus the intermediate value theorem gives existence and
+\eqref{eq:Hrbound} gives uniqueness.  Analyticity follows from the analytic
+implicit function theorem.
+\end{proof}
+
+\begin{remark}\label{rem:newton}
+Lemma~\ref{lem:energygraph} is important for the computer-assisted proof.
+An interval Newton iteration may be used to \emph{narrow} the enclosure of
+$r(p,z)$, but existence must first be certified.  Monotonicity together with
+the endpoint signs \eqref{eq:PhiSides} provides this certification.  Merely
+checking that $\partial_r\Phi$ does not vanish would prove uniqueness but not
+existence for every parameter pair in a box.
+\end{remark}
+
+Differentiating the identity $\Phi(r(p,z);p,z)=0$ gives
+\begin{equation}\label{eq:liftderivatives}
+ r_p=-\frac{p}{H_r},
+ \qquad
+ r_z=-\frac{H_z}{H_r}.
+\end{equation}
+These formulas are used to convert the derivative of the four-dimensional
+flow to the derivative of the two-dimensional Poincar\'e map in coordinates
+$(\pz,z)$.
+
+\section{Reversibility and a symmetric period-four orbit}\label{sec:symmetry}
+
+Let $\Sigma_{\rm per}$ be the periapsis section
+\[
+ \Sigma_{\rm per}
+ =
+ \{\pr=0,\ \dot{\pr}>0\}\cap\cM,
+\]
+and let $P$ denote the first return map from one periapsis crossing to the
+next.  We use coordinates
+\[
+ (p,z)=(\pz,z)
+\]
+on $\Sigma_{\rm per}$.
+
+The Hamiltonian is invariant under the symplectic involution
+\[
+ \mathcal C(r,z,\pr,\pz)
+ =
+ (r,-z,\pr,-\pz)
+\]
+and under the standard time reversal
+\[
+ \mathcal T(r,z,\pr,\pz)
+ =
+ (r,z,-\pr,-\pz).
+\]
+The composition
+\begin{equation}\label{eq:fullreverser}
+ \cR:=\mathcal C\mathcal T,\qquad
+ \cR(r,z,\pr,\pz)=(r,-z,-\pr,\pz),
+\end{equation}
+is an anti-symplectic reverser.
+
+On the periapsis section these maps induce
+\[
+ C(p,z)=(-p,-z),\qquad
+ R(p,z)=(p,-z),\qquad
+ S=CR=(-p,z).
+\]
+They satisfy
+\begin{equation}\label{eq:reversibility}
+ CP=PC,\qquad
+ RPR=P^{-1},\qquad
+ SPS=P^{-1}.
+\end{equation}
+
+For $q=(p,0)\in\Fix R$ define the scalar function
+\begin{equation}\label{eq:g}
+ g(p):=\pi_p P(p,0).
+\end{equation}
+
+\begin{lemma}[Symmetric period-four criterion]\label{lem:period4}
+If $p_*\ne0$ and $g(p_*)=0$, then
+\[
+ q=(p_*,0)
+\]
+satisfies
+\[
+ P^2q=Cq,\qquad P^4q=q.
+\]
+In particular $q$ has prime period four for $P$.
+\end{lemma}
+
+\begin{proof}
+Since $q\in\Fix R$ and $g(p_*)=0$, we have
+$Pq\in\Fix S$.  Therefore
+\[
+ Pq=SPq=CRPq.
+\]
+Using $RP=P^{-1}R$, $Rq=q$ and $CP=PC$, we obtain
+\[
+ Pq=CP^{-1}q=P^{-1}Cq.
+\]
+Hence $P^2q=Cq$.  Applying $P^2$ once more and using commutation with $C$
+gives
+\[
+ P^4q=P^2Cq=CP^2q=C^2q=q.
+\]
+Since $p_*\ne0$, $Cq\ne q$, hence $P^2q\ne q$; also $Pq$ belongs to
+$\Fix S$ while $q\notin\Fix S$.  Thus the prime period is four.
+\end{proof}
+
+We set
+\begin{equation}\label{eq:F}
+ F:=P^4.
+\end{equation}
+The interval computation searches for $p_*$ in
+\begin{equation}\label{eq:pbracket}
+ I_*=[8.5768,8.5769].
+\end{equation}
+The validation criterion will prove a strict sign change of $g$ at the
+endpoints and $g'>0$ on $I_*$.  It will also prove that the two multipliers
+of $DF(q)$ satisfy
+\begin{equation}\label{eq:multipliertarget}
+ 5.5<\lambda_u<5.8,
+ \qquad
+ 0.17<\lambda_s<0.19.
+\end{equation}
+Consequently $q$ is a hyperbolic fixed point of $F$.
+
+\section{A rigorous local unstable graph}\label{sec:graph}
+
+We now prove the only local invariant-manifold statement needed later.
+The point is to avoid treating a numerically computed Taylor polynomial as
+the actual unstable manifold.
+
+Let $B$ be the linear coordinate matrix
+\begin{equation}\label{eq:B}
+ B=
+ \begin{pmatrix}
+ 0.68026252175126 & 0.68026252100350\\
+ -0.73296855423723& 0.73296855493122
+ \end{pmatrix},
+\end{equation}
+whose columns approximate unstable and stable eigenvectors.
+Write
+\[
+ (p,z)=q+B(u,v).
+\]
+For $U>0$ and $a>0$ define
+\begin{equation}\label{eq:N}
+ N=[-U,U]\times[-aU,aU].
+\end{equation}
+Let
+\[
+ \widehat F(u,v)
+ =
+ B^{-1}\bigl(F(q+B(u,v))-q\bigr)
+\]
+denote $F$ in these coordinates and write
+\[
+ D\widehat F=
+ \begin{pmatrix}
+ J_{11}&J_{12}\\
+ J_{21}&J_{22}
+ \end{pmatrix}.
+\]
+
+\begin{proposition}[Cone--graph criterion]\label{prop:graph}
+Assume that $\widehat F$ is defined on $N$, fixes the origin, and that the
+following estimates hold on $N$:
+\begin{align}
+ \mu
+ &:=
+ \inf_N |J_{11}|
+ -a\sup_N|J_{12}|>1,
+ \label{eq:cone1}\\
+ \sup_N|J_{21}|+a\sup_N|J_{22}|
+ &<
+ a\mu,
+ \label{eq:cone2}\\
+ |\pi_v\widehat F(u,v)|
+ &<aU
+ \qquad\text{for every }(u,v)\in N,
+ \label{eq:trap}\\
+ \pi_u\widehat F(U,v)&>U,
+ \qquad
+ \pi_u\widehat F(-U,v)<-U
+ \quad (|v|\le aU).
+ \label{eq:exit}
+\end{align}
+Then the local unstable manifold contains a graph
+\begin{equation}\label{eq:unstablegraph}
+ \Gamma^u
+ =
+ \{(u,h(u)):-U\le u\le U\}
+ \subset \Wu_{\rm loc}(0;\widehat F)
+\end{equation}
+with
+\begin{equation}\label{eq:hslope}
+ h(0)=0,\qquad
+ |h'(u)|\le a,\qquad
+ |h(u)|\le a|u|.
+\end{equation}
+In particular, for every $u\in[-U,U]$ the point $(u,h(u))$ is a
+genuine point of the unstable manifold.
+\end{proposition}
+
+\begin{proof}
+Let $\mathcal G$ denote the set of Lipschitz functions
+\[
+ h:[-U,U]\longrightarrow[-aU,aU]
+\]
+such that $h(0)=0$ and $\operatorname{Lip}(h)\le a$.
+This is a compact convex subset of $C^0([-U,U])$.
+
+For $h\in\mathcal G$, consider
+\[
+ \Gamma_h=\{(u,h(u)):-U\le u\le U\}.
+\]
+The function
+\[
+ U_h(u):=\pi_u\widehat F(u,h(u))
+\]
+is absolutely continuous.  By \eqref{eq:cone1}, $J_{11}$ never vanishes on
+the connected set $N$, hence it has constant sign there.  At almost every
+point,
+\[
+ |U_h'(u)|
+ =
+ |J_{11}+J_{12}h'(u)|
+ \ge
+ \inf_N|J_{11}|-a\sup_N|J_{12}|
+ =
+ \mu>1.
+\]
+The sign of $U_h'$ is therefore constant.  The exit inequalities
+\eqref{eq:exit} imply
+\[
+ U_h(-U)<-U<U<U_h(U),
+\]
+so $U_h$ cannot be decreasing.  Consequently
+\[
+ U_h'(u)\ge\mu>1
+\]
+almost everywhere.  Thus $U_h$ is strictly increasing, and the portion of
+$\widehat F(\Gamma_h)$ lying over $[-U,U]$ is defined on the whole
+horizontal interval.
+
+At almost every point of $\Gamma_h$, the slope of the image is
+\[
+ \frac{J_{21}+J_{22}h'}
+ {J_{11}+J_{12}h'}.
+\]
+By \eqref{eq:cone1}--\eqref{eq:cone2}, its absolute value is strictly less
+than $a$.  The trapping estimate \eqref{eq:trap} shows that the image stays
+strictly between the horizontal faces of $N$.  Therefore
+\[
+ \widehat F(\Gamma_h)\cap N
+\]
+is again a graph $\Gamma_{Th}$ for some $Th\in\mathcal G$.
+Since $\widehat F(0)=0$, we have $(Th)(0)=0$.
+
+The expansion estimate $\mu>1$ gives uniform control of the inverse of
+$U_h$, and therefore the graph transform
+\[
+ T:\mathcal G\longrightarrow\mathcal G
+\]
+is continuous in the $C^0$ topology.  By Schauder's fixed point theorem
+there exists $h\in\mathcal G$ with $Th=h$.
+
+Let $x=(u,h(u))$ belong to the fixed graph.  There is a unique inverse
+iterate $x_{-1}=(u_{-1},h(u_{-1}))$ in the same graph.  Since
+$U_h(0)=0$ and $U_h'\ge\mu$ almost everywhere,
+\[
+ |u|\ge\mu|u_{-1}|.
+\]
+Iterating,
+\[
+ |u_{-n}|\le\mu^{-n}|u|.
+\]
+Because $|h(u_{-n})|\le a|u_{-n}|$, we obtain
+\[
+ \widehat F^{-n}(x)\longrightarrow0.
+\]
+Hence the invariant graph is contained in $\Wu(0;\widehat F)$.
+
+Since $h(0)=0$ and $\operatorname{Lip}(h)\le a$,
+\[
+ |h(u)|\le a|u|.
+\]
+The system and $F$ are real analytic in the collisionless region.
+The graph is a connected interval through the hyperbolic fixed point and is
+contained in its one-dimensional analytic unstable manifold.  Since the
+$u$-projection is one-to-one on the graph, the analytic unstable-manifold
+theorem implies that $h$ is real analytic in the interior of its interval.
+\end{proof}
+
+\begin{remark}
+The proof uses only interval bounds on $D\widehat F$ and on the images of
+the three relevant sets: the whole block and the two vertical faces.
+No high-order parametrization of $\Wu(q)$ is required.
+\end{remark}
+
+\section{From a sign change to a symmetric homoclinic orbit}
+\label{sec:homoclinic}
+
+Let
+\[
+ \Sigma_{\rm apo}
+ =
+ \{\pr=0,\ \dot{\pr}<0\}\cap\cM
+\]
+be the apoapsis section and let
+\[
+ A:\Sigma_{\rm per}\longrightarrow\Sigma_{\rm apo}
+\]
+denote the first hitting map.  Define
+\begin{equation}\label{eq:G}
+ G:=A\circ F^6=A\circ P^{24}.
+\end{equation}
+
+Let the unstable graph of Proposition~\ref{prop:graph} be written in
+physical section coordinates as
+\[
+ x(u)=q+B(u,h(u)).
+\]
+We use
+\begin{equation}\label{eq:uLR}
+ u_L=2.68\times10^{-5},
+ \qquad
+ u_R=2.70\times10^{-5}.
+\end{equation}
+The bound \eqref{eq:hslope} implies
+\[
+ h(u_j)\in[-a|u_j|,a|u_j|],
+ \qquad j=L,R.
+\]
+Hence vertical interval tubes at $u_L,u_R$ rigorously contain the true
+unstable-manifold points.
+
+Define the apoapsis arc
+\begin{equation}\label{eq:gamma}
+ \gamma(u):=G(x(u)),
+ \qquad u\in[u_L,u_R].
+\end{equation}
+
+\begin{proposition}[Symmetric homoclinic criterion]\label{prop:homoclinic}
+Assume that $G$ is well defined on the relevant unstable tubes, that the
+apoapsis crossings are regular, and that
+\begin{equation}\label{eq:zsign}
+ z(\gamma(u_L))<0<z(\gamma(u_R)).
+\end{equation}
+Then the flow has a homoclinic orbit to the periodic orbit $\cO$ generated by
+$q$.
+\end{proposition}
+
+\begin{proof}
+By continuity there exists $u_*\in(u_L,u_R)$ such that
+\[
+ z(\gamma(u_*))=0.
+\]
+Since $\gamma(u_*)\in\Sigma_{\rm apo}$, also $\pr=0$ there.
+Thus, by \eqref{eq:fullreverser},
+\[
+ \cR(\gamma(u_*))=\gamma(u_*).
+\]
+
+The periodic orbit $\cO$ is invariant under $\cR$, and $\cR$ reverses time.
+Therefore
+\[
+ \cR(\Wu(\cO))=\Ws(\cO).
+\]
+On the other hand $\gamma(u_*)$ lies on $\Wu(\cO)$ because it is obtained by
+forward propagation of a point of the unstable graph.  Since it is fixed by
+$\cR$, it also belongs to $\Ws(\cO)$.  Hence
+\[
+ \gamma(u_*)\in\Wu(\cO)\cap\Ws(\cO).
+\]
+This intersection is nontrivial.  Indeed $u_*>u_L>0$, so
+$x(u_*)\ne q$.  If $\gamma(u_*)$ belonged to the periodic orbit $\cO$, then
+invariance of $\cO$ under the flow would imply $x(u_*)\in\cO$.  On the
+periapsis section, $x(u_*)$ would then be a point fixed by $F=P^4$.  But
+$x(u_*)\in\Wu(q;F)$, hence $F^{-n}(x(u_*))\to q$; a fixed point of $F$ with
+this property must be $q$, a contradiction.  Thus the trajectory through
+$\gamma(u_*)$ is a nontrivial homoclinic orbit to $\cO$.
+\end{proof}
+
+\section{Topological crossing and positive entropy}\label{sec:crossing}
+
+A homoclinic orbit alone does not imply positive entropy: stable and unstable
+manifolds could coincide along a separatrix connection.  We therefore need a
+crossing condition.
+
+The apoapsis section is invariant under the restriction of the reverser
+\eqref{eq:fullreverser}; in coordinates $(p,z)=(\pz,z)$ this restriction is
+simply
+\begin{equation}\label{eq:apoReflection}
+ (p,z)\longmapsto(p,-z).
+\end{equation}
+
+The following criterion is tailored to interval validation.
+
+\begin{proposition}[One derivative is enough]\label{prop:crossing}
+In addition to the assumptions of Proposition~\ref{prop:homoclinic}, assume
+that
+\begin{equation}\label{eq:pmonotone}
+ \frac{d}{du}\,\pi_p\gamma(u)<-\eta<0
+ \qquad\text{for every }u\in[u_L,u_R].
+\end{equation}
+Then at least one point of the homoclinic intersection obtained from
+\eqref{eq:zsign} is a topological crossing between
+$\Wu(\cO)$ and $\Ws(\cO)$.
+\end{proposition}
+
+\begin{proof}
+Write
+\[
+ p(u)=\pi_p\gamma(u),\qquad
+ z(u)=\pi_z\gamma(u).
+\]
+By \eqref{eq:pmonotone}, $p$ is a real-analytic local coordinate along the
+unstable arc.  Thus the unstable manifold can be written near the relevant
+part of the apoapsis section as
+\[
+ z=\varphi(p)
+\]
+for a real-analytic function $\varphi$.
+
+The endpoint condition \eqref{eq:zsign} implies that $\varphi$ assumes both
+signs.  Since $\varphi$ is analytic and is not identically zero, one may
+choose a zero $p_0$ across which its sign changes.  This zero has odd finite
+multiplicity:
+\[
+ \varphi(p)
+ =
+ c(p-p_0)^{2k+1}
+ +O((p-p_0)^{2k+2}),
+ \qquad c\ne0.
+\]
+
+By the reflection symmetry \eqref{eq:apoReflection}, the corresponding
+stable arc is
+\[
+ z=-\varphi(p).
+\]
+Consequently the two arcs exchange their vertical order when $p$ passes
+through $p_0$.  This is a topological crossing in the sense of
+Burns--Weiss \cite{BurnsWeiss}.
+\end{proof}
+
+\begin{theorem}\label{thm:entropyfromcrossing}
+Under the assumptions of Proposition~\ref{prop:crossing},
+\[
+ \htop(\phi_H|_{\cM})>0.
+\]
+\end{theorem}
+
+\begin{proof}
+Choose a disk-like global surface of section for the compact energy
+surface; such sections are available in the compact SI3BP by
+\cite{HuLiuOuSalomaoYu}.  In the present setting the first return map and the
+return time admit smooth extensions to the closed disk; see
+\cite[Propositions~4.1--4.2]{ECHconstraints}.  A local holonomy map obtained
+by flowing from the apoapsis section to this disk is a diffeomorphism near
+the homoclinic point and therefore preserves the topological crossing.
+
+Let $\psi$ be the first return map of the disk.  Choose one intersection
+$x_0\in\cO$ with the disk and let $k$ be its period under $\psi$.  After
+choosing the appropriate intersection of the homoclinic orbit with the same
+disk, we obtain a homoclinic topological crossing for the hyperbolic fixed
+point $x_0$ of $\psi^k$.  Burns--Weiss \cite{BurnsWeiss} gives
+\[
+ \htop(\psi^k)>0,
+\]
+and hence $\htop(\psi)=\htop(\psi^k)/k>0$.
+
+To pass from the return map to the flow, choose an ergodic
+$\psi$-invariant probability measure $\nu$ with $h_\nu(\psi)>0$, which
+exists by the variational principle and ergodic decomposition.  The boundary
+circle is invariant and the restriction of $\psi$ to it is a circle
+diffeomorphism, hence has zero entropy; consequently $\nu$ gives zero mass to
+the boundary.  If $\tau$ denotes the positive return time on the interior,
+its smooth extension to the closed disk implies
+\[
+ 0<\int\tau\,d\nu<\infty.
+\]
+The suspension measure determined by $\nu$ is therefore a measure for the
+Hamiltonian flow on $\cM\setminus\zeta_e$ and, by Abramov's entropy formula
+\cite{Abramov}, has positive entropy.  Therefore
+\[
+ \htop(\phi_H|_{\cM})>0.
+\]
+\end{proof}
+
+There is a stronger, more classical alternative.
+
+\begin{proposition}[Transverse version]\label{prop:transverse}
+Suppose that, in addition to \eqref{eq:zsign}, the tangent
+\[
+ \gamma'(u)=\bigl(p_{\rm apo}'(u),z_{\rm apo}'(u)\bigr)
+\]
+satisfies at every possible zero of $z$
+\[
+ p_{\rm apo}'(u)\ne0,\qquad z_{\rm apo}'(u)\ne0.
+\]
+Then the homoclinic intersection is transverse.  In particular a suitable
+Poincar\'e map contains a Smale horseshoe.
+\end{proposition}
+
+\begin{proof}
+At a symmetric homoclinic point write the unstable tangent as $(P',Z')$,
+where $P'=p_{\rm apo}'(u)$ and $Z'=z_{\rm apo}'(u)$.  Reflection
+\eqref{eq:apoReflection} sends it to the stable tangent $(P',-Z')$.  Their
+determinant is
+\[
+ \det
+ \begin{pmatrix}
+ P'&P'\\
+ Z'&-Z'
+ \end{pmatrix}
+ =
+ -2P'Z'\ne0.
+\]
+The Smale--Birkhoff homoclinic theorem gives a horseshoe.
+\end{proof}
+
+The current numerical search was originally designed for the stronger
+targets
+\begin{equation}\label{eq:strongtargets}
+ P'<-100,\qquad
+ Z'>10^5,
+\end{equation}
+which have large floating-point margins.  For positive entropy alone,
+Proposition~\ref{prop:crossing} shows that the $Z'$ estimate may be omitted.
+
+\section{How interval arithmetic is used in the proof}\label{sec:interval}
+
+We now explain the computer-assisted component in more detail.  The purpose
+of this section is not to reproduce the implementation line by line, but to
+make clear why the numerical statements, once validated, are mathematical
+theorems.
+
+\subsection{Intervals and outward rounding}
+
+An interval
+\[
+ X=[\underline x,\overline x]
+\]
+represents all real numbers between its endpoints.  Arithmetic operations are
+performed with \emph{outward rounding}: if $x\in X$ and $y\in Y$, then the
+machine-computed interval $X\circ Y$ is guaranteed to contain every exact
+value $x\circ y$ for the corresponding operation $\circ$.
+
+Thus, for example, if a computation gives
+\[
+ f(X)\subset[0.002,0.014],
+\]
+then $f(x)>0$ for every $x\in X$.  The statement is not a floating-point
+observation; it is a rigorous enclosure statement.
+
+The same idea applies to vectors and matrices.  An interval matrix
+$\mathbf A$ contains an entire family of exact matrices.  Inequalities
+written using suprema and infima of interval entries therefore hold
+simultaneously for every exact derivative matrix represented by
+$\mathbf A$.
+
+\subsection{Validated integration of the flow}
+
+The vector field \eqref{eq:HamEq} is explicit and analytic away from
+collisions.  We use the CAPD::DynSys library
+\cite{KapelaMrozekWilczakZgliczynski}, which provides validated integration
+of ordinary differential equations and their variational equations.  For
+reproducibility, the accompanying workflow pins the CAPD source to commit
+\texttt{731079217a9254ea2948d742df2b170895effe7f}.
+
+For a box $X$ of initial conditions, the validated ODE solver does not follow
+a single floating-point trajectory.  Instead it constructs an enclosure
+containing
+\[
+ \phi^t(x)
+ \qquad\text{for every }x\in X
+\]
+throughout each integration step.  In a $C^1$ computation it simultaneously
+encloses the solutions of the variational equation
+\[
+ \dot\Xi(t)=DX_H(\phi^t(x))\Xi(t),
+ \qquad \Xi(0)=I.
+\]
+Consequently it encloses both the flow and its first derivative.
+
+The main practical difficulty is the wrapping effect: after many iterates,
+a rectangular enclosure may become much wider than the true image.
+CAPD uses doubleton and Hermite--Obreshkov representations to reduce this
+effect.  In the present problem the relevant phase-space dimension is only
+four, while the Poincar\'e dynamics is two-dimensional, so the required
+validation is comparatively small.
+
+\subsection{Validated Poincar\'e maps}
+
+The first-return map is defined by an event:
+\[
+ \pr=0
+\]
+with a prescribed crossing direction.  CAPD's interval Poincar\'e map
+routines rigorously enclose the first hitting point and the return time.
+The variational equation initially gives the derivative of the flow.  The
+standard correction for the dependence of the hitting time is then used to
+produce an enclosure of the derivative of the Poincar\'e map.
+
+In the implementation we use two event maps:
+\begin{itemize}
+\item a minus-to-plus crossing of $\pr=0$ for the periapsis map $P$;
+\item a plus-to-minus crossing for the periapsis-to-apoapsis map $A$.
+\end{itemize}
+The sign condition
+\[
+ \dot{\pr}<-\delta<0
+\]
+at the validated apoapsis box guarantees that the latter event is regular and
+that the hitting map is smooth there.
+
+The Poincar\'e computation takes place on the fixed energy hypersurface.
+The lift
+\[
+ (p,z)\longmapsto(r(p,z),z,0,p)
+\]
+must therefore also be validated.  Lemma~\ref{lem:energygraph} supplies
+existence and uniqueness of $r(p,z)$, while
+\eqref{eq:liftderivatives} gives its derivatives.  This is then composed with
+the full four-dimensional Poincar\'e derivative to obtain a rigorous
+$2\times2$ derivative matrix in $(p,z)$ coordinates.
+
+\subsection{Validating the period-four saddle}
+
+The first scalar validation concerns
+\[
+ g(p)=\pi_pP(p,0).
+\]
+The computer proves
+\[
+ g(8.5768)<0<g(8.5769)
+\]
+and
+\[
+ g'(I_*)>0.
+\]
+The intermediate value theorem gives a unique root $p_*\in I_*$.
+A rigorous bisection may then reduce the root interval.
+
+The program evaluates $P^4$ and its derivative on the entire root enclosure.
+From the interval trace and determinant it encloses the two eigenvalues and
+checks \eqref{eq:multipliertarget}.  This establishes a genuine hyperbolic
+period-four orbit; the approximate value $p_*\approx8.5768221605$ is used
+only as centering information.
+
+\subsection{Validating the true unstable manifold}
+
+The local coordinate matrix \eqref{eq:B} is also only centering information.
+No claim depends on those decimal numbers being exact eigenvectors.
+
+For a candidate block
+\[
+ N=[-U,U]\times[-aU,aU],
+\]
+the interval computation encloses $D\widehat F(N)$ and verifies
+\eqref{eq:cone1}--\eqref{eq:cone2}.  It then computes interval images of the
+whole block and of the two vertical faces to verify
+\eqref{eq:trap}--\eqref{eq:exit}.  Proposition~\ref{prop:graph} then converts
+these finitely many interval inequalities into a statement about the
+\emph{actual} unstable manifold:
+\[
+ v=h(u),\qquad |h'(u)|\le a.
+\]
+In particular,
+\[
+ h(u_j)\in[-a|u_j|,a|u_j|],
+ \qquad j=L,R.
+\]
+These are precisely the two tubes that are propagated in the next step.
+
+\subsection{Validating the homoclinic crossing}
+
+The long map
+\[
+ G=A\circ P^{24}
+\]
+is applied to the two endpoint tubes.  If interval arithmetic proves
+\[
+ \pi_zG(\text{tube at }u_L)<0,
+ \qquad
+ \pi_zG(\text{tube at }u_R)>0,
+\]
+then \eqref{eq:zsign} holds for the true unstable graph.
+
+For the crossing condition, one propagates the whole tangent cone
+\[
+ (1,m),\qquad |m|\le a.
+\]
+After conversion to physical coordinates and multiplication by the rigorous
+derivative of $G$, interval arithmetic encloses the $p$ component of every
+possible tangent to the propagated unstable arc.  To control wrapping in the
+long map $A\circ P^{24}$, the implementation subdivides
+$[u_L,u_R]$ into $32$ subintervals and validates the tangent cone on each one.
+It is enough to prove
+\[
+ P'<-\eta<0.
+\]
+The present code uses the conservative target $\eta=50$.  This proves
+\eqref{eq:pmonotone} without having to know the exact function $h$.
+
+A stronger validation also encloses the $z$ component and proves
+\eqref{eq:strongtargets}.  In that case the homoclinic intersection is
+transverse.
+
+\subsection{Why this is different from numerical evidence}
+
+The floating-point search serves only to locate promising boxes.  A usual
+simulation gives approximate values along one orbit and may miss errors
+caused by roundoff, event location, accumulated integration error and
+sensitivity to initial data.  The interval proof is instead a finite chain
+of inclusions.  Every object used in the mathematical argument---the root,
+the multipliers, the image of the block, the endpoint tubes and the tangent
+cone---is enclosed with directed rounding.
+
+Therefore a successful run is a proof of a list of explicit inequalities.
+The dynamical conclusion follows from the exact propositions of the previous
+sections.
+
+\section{The finite certificate}\label{sec:certificate}
+
+We collect the assumptions of Theorem~\ref{thm:certificate} in a form suited
+for independent implementation.
+
+\subsection*{(C1) Symmetric hyperbolic period-four point}
+
+The interval computation must prove
+\begin{align}
+ g(8.5768)&<0<g(8.5769),\label{eq:C1a}\\
+ g'([8.5768,8.5769])&>0.\label{eq:C1b}
+\end{align}
+Let $I_q$ be the resulting root enclosure.  It must also prove that the two
+multipliers of $DP^4$ on $I_q\times\{0\}$ satisfy
+\begin{equation}\label{eq:C1c}
+ \lambda_u\in(5.5,5.8),
+ \qquad
+ \lambda_s\in(0.17,0.19).
+\end{equation}
+
+\subsection*{(C2) Energy lift}
+
+For every local box used in the proof, the lift to $H=-1$ must belong to the
+unique branch of Lemma~\ref{lem:energygraph}.  It is sufficient to verify
+that the section coordinates remain in
+\[
+ 8.5767\le p\le8.5770,
+ \qquad
+ |z|\le10^{-4},
+\]
+and then use \eqref{eq:Hrbound}--\eqref{eq:PhiSides} before applying interval
+Newton.  In particular, an implementation that only checks
+$0\notin H_r$ after the Newton iteration is not sufficient: it proves
+uniqueness on the surviving interval but does not by itself prove existence
+of the energy branch for every parameter value in the input box.
+
+\subsection*{(C3) Local hyperbolic block}
+
+For some
+\[
+ U\in\{4,4.5,5,6,8\}\times10^{-5},
+\]
+and some aperture $a>0$, with coordinates \eqref{eq:B}, prove
+\eqref{eq:cone1}--\eqref{eq:exit}.  Explicitly, a convenient interval form is
+\begin{align}
+ \inf |J_{11}|-a\sup|J_{12}|&>1,\label{eq:C3a}\\
+ \sup|J_{21}|+a\sup|J_{22}|
+ &<
+ a\bigl(\inf |J_{11}|-a\sup|J_{12}|\bigr),\label{eq:C3b}\\
+ \pi_v\widehat F(N)&\Subset(-aU,aU),\label{eq:C3c}\\
+ \pi_u\widehat F(\{U\}\times[-aU,aU])&>U,\label{eq:C3d}\\
+ \pi_u\widehat F(\{-U\}\times[-aU,aU])&<-U.\label{eq:C3e}
+\end{align}
+
+\subsection*{(C4) Homoclinic topological crossing}
+
+For
+\[
+ u_L=2.68\times10^{-5},
+ \qquad
+ u_R=2.70\times10^{-5},
+\]
+propagate the two tubes
+\[
+ \{u_j\}\times[-a|u_j|,a|u_j|],
+ \qquad j=L,R,
+\]
+under $G=A\circ P^{24}$ and prove
+\begin{equation}\label{eq:C4a}
+ z_{\rm apo}(u_L)<0<z_{\rm apo}(u_R).
+\end{equation}
+On a finite subdivision of the complete strip
+\[
+ [u_L,u_R]\times[-au_R,au_R],
+\]
+prove, on every substrip, regularity of the apoapsis event,
+\begin{equation}\label{eq:C4b}
+ \dot{\pr}<-\delta<0,
+\end{equation}
+and propagation of the tangent cone with
+\begin{equation}\label{eq:C4c}
+ P'<-\eta<0.
+\end{equation}
+Any explicit $\delta,\eta>0$ are sufficient.  In the supplied implementation
+we take $\delta=0.02$, $\eta=50$, and use $32$ equal subdivisions of the
+$u$-interval.
+
+\subsection*{(C4$^+$) Strong transverse certificate}
+
+Instead of only \eqref{eq:C4c}, one may prove the stronger pair
+\begin{equation}\label{eq:C4plus}
+ P'<-100,\qquad Z'>10^5.
+\end{equation}
+Then Proposition~\ref{prop:transverse} gives a transverse homoclinic
+intersection.
+
+\begin{proof}[Proof of Theorem~\ref{thm:certificate}]
+Condition (C1) and Lemma~\ref{lem:period4} give the symmetric period-four
+orbit, and \eqref{eq:C1c} makes it hyperbolic.
+Condition (C2) makes every local section lift rigorous.
+Condition (C3), together with Proposition~\ref{prop:graph}, produces the true
+unstable graph and the endpoint tubes containing it.
+Condition (C4a) and Proposition~\ref{prop:homoclinic} give a symmetric
+homoclinic point.
+Conditions (C4b)--(C4c) and Proposition~\ref{prop:crossing} make one such
+point a topological crossing.
+Theorem~\ref{thm:entropyfromcrossing} then gives positive topological entropy.
+If (C4$^+$) holds, Proposition~\ref{prop:transverse} gives a transverse
+homoclinic point and hence a Smale horseshoe.
+\end{proof}
+
+\section{Exploratory computation and expected margins}\label{sec:exploratory}
+
+For completeness, we record the floating-point values that motivated the
+interval boxes.  They are not used as proof.
+
+The symmetric period-four point was found near
+\[
+ p_*\approx8.5768221605,
+\]
+with multipliers
+\[
+ \lambda_u\approx5.6225545,
+ \qquad
+ \lambda_s\approx0.1778551.
+\]
+For the center line $v=0$, propagation by $A\circ P^{24}$ gives
+approximately
+\[
+ z_{\rm apo}(2.68\times10^{-5})\approx-1.58\times10^{-2},
+\]
+and
+\[
+ z_{\rm apo}(2.70\times10^{-5})\approx1.25\times10^{-2}.
+\]
+The corresponding finite-difference slopes are approximately
+\[
+ \frac{dp}{du}\approx-2.08\times10^2,
+ \qquad
+ \frac{dz}{du}\approx1.42\times10^5,
+\]
+and the apoapsis event satisfies roughly
+\[
+ \dot{\pr}\approx-3.10\times10^{-2}.
+\]
+These numbers explain the conservative target inequalities in
+\eqref{eq:multipliertarget}, \eqref{eq:C4b} and \eqref{eq:C4plus}.
+
+The main numerical issue is not proximity to zero, but control of interval
+wrapping over the long iterate $P^{24}$.  The supplied certificate therefore
+uses $32$ equal subdivisions of $[u_L,u_R]$.  This number is a numerical
+choice rather than a mathematical assumption and may be increased if needed.
+Since only the sign of $P'$ is required for the Burns--Weiss route, this
+subdivision is considerably easier than validating a very large lower bound
+for $Z'$.
+
+\section{Discussion}
+
+The argument above isolates a concrete route toward Marco's entropy problem.
+Several features seem useful beyond the particular parameter values chosen
+here.
+
+First, reversibility is used in an essential way.  It reduces the search for
+a two-dimensional stable--unstable intersection to a scalar zero on the
+fixed set of an anti-symplectic reverser.  Once an unstable arc is propagated
+to the apoapsis section, the equation $z=0$ automatically places the point
+on the stable manifold as well.
+
+Second, the local unstable manifold is certified by a cone/block argument
+rather than by a high-order polynomial parametrization.  This keeps the
+computer-assisted proof short and robust.
+
+Third, for the purpose of positive entropy one does not need to prove
+differential transversality.  The sign change of $z$ together with
+monotonicity of $p$ forces a topological crossing, and Burns--Weiss applies
+even in the presence of higher-order contact.  Differential transversality
+is nevertheless desirable because it immediately gives a Smale horseshoe
+and persistence under small parameter changes.
+
+Finally, all inequalities in (C1)--(C4) are strict.  If the stronger
+transverse certificate is obtained with uniform margins, the same argument
+can in principle be repeated with $(\beta,e)$ ranging in a small parameter
+box.  This would prove positive entropy on an open set of compact integral
+manifolds, providing a stronger partial answer to Marco's question.
+
+\section*{Acknowledgments}
+
+LL is partially supported by the National Natural Science Foundation of
+China (Grant number 12401238) and the Natural Science Foundation of Shandong
+Province (Grant number ZR2024QA188).  LL thanks the School of Mathematics at
+Shandong University for its support.  PS is partially supported by the
+National Natural Science Foundation of China (Grant number W2431007).
+LL and PS thank the Shenzhen International Center for Mathematics--SUSTech
+for its support.
+
+\begin{thebibliography}{99}
+
+\bibitem{Abramov}
+L.~M.~Abramov,
+\newblock On the entropy of a flow,
+\newblock \emph{Dokl. Akad. Nauk SSSR} \textbf{128} (1959), 873--875.
+
+\bibitem{AlbouyCabralSantos}
+A.~Albouy, H.~E.~Cabral and A.~A.~Santos,
+\newblock Some problems on the classical $n$-body problem,
+\newblock \emph{Celestial Mech. Dynam. Astronom.} \textbf{113} (2012),
+369--375.
+\newblock \href{https://doi.org/10.1007/s10569-012-9431-1}
+{doi:10.1007/s10569-012-9431-1}.
+
+\bibitem{BurnsWeiss}
+K.~Burns and H.~Weiss,
+\newblock A geometric criterion for positive topological entropy,
+\newblock \emph{Comm. Math. Phys.} \textbf{172} (1995), 95--118.
+\newblock \href{https://doi.org/10.1007/BF02104512}
+{doi:10.1007/BF02104512}.
+
+\bibitem{HuLiuOuSalomaoYu}
+X.~Hu, L.~Liu, Y.~Ou, P.~A.~S.~Salom\~ao and G.~Yu,
+\newblock A symplectic dynamics approach to the spatial isosceles three-body
+problem,
+\newblock \emph{J. Eur. Math. Soc.} (2025), published online first.
+\newblock \href{https://doi.org/10.4171/JEMS/1678}{doi:10.4171/JEMS/1678}.
+
+\bibitem{ECHconstraints}
+X.~Hu, L.~Liu, Y.~Ou, Z.~Qiao and P.~A.~S.~Salom\~ao,
+\newblock ECH constraints and twist dynamics in the spatial isosceles
+three-body problem,
+\newblock preprint, arXiv:2602.24025.
+
+\bibitem{KapelaMrozekWilczakZgliczynski}
+T.~Kapela, M.~Mrozek, D.~Wilczak and P.~Zgliczy\'nski,
+\newblock CAPD::DynSys: a flexible C++ toolbox for rigorous numerical
+analysis of dynamical systems,
+\newblock \emph{Commun. Nonlinear Sci. Numer. Simul.} \textbf{101} (2021),
+105578.
+\newblock \href{https://doi.org/10.1016/j.cnsns.2020.105578}
+{doi:10.1016/j.cnsns.2020.105578}.
+
+\bibitem{Moeckel1984}
+R.~Moeckel,
+\newblock Heteroclinic phenomena in the isosceles three-body problem,
+\newblock \emph{SIAM J. Math. Anal.} \textbf{15} (1984), 857--876.
+\newblock \href{https://doi.org/10.1137/0515065}
+{doi:10.1137/0515065}.
+
+\end{thebibliography}
+
+\end{document}
